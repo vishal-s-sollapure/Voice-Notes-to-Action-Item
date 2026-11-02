@@ -2,22 +2,25 @@
 
 Turn spoken voice notes and audio recordings into structured, prioritized action items in seconds using **Google Gemini** multimodal AI and **Streamlit**.
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=vishal-s-sollapure/Voice-Notes-to-Action-Item&branch=main&mainModule=app.py)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://vishal-s-sollapure-voice-notes-to-action-item-app-2kyp2v.streamlit.app/)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.40%2B-FF4B4B?logo=streamlit)
 ![Google Gemini](https://img.shields.io/badge/Google%20Gemini-Multimodal-4285F4?logo=google)
 
 ---
 
-## 🚀 Live Deployment
+## 🚀 Live App
 
-- **Instant 1-Click Deploy on Streamlit Cloud**:
+- **Live Deployed URL**:  
+  👉 **[Voice Notes to Action Items · Streamlit](https://vishal-s-sollapure-voice-notes-to-action-item-app-2kyp2v.streamlit.app/)**
+
+- **Instant 1-Click Deploy on Streamlit Cloud**:  
   [![Deploy to Streamlit Cloud](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=vishal-s-sollapure/Voice-Notes-to-Action-Item&branch=main&mainModule=app.py)
 
-- **Direct Deployment URL**:
+- **Direct Deployment Template URL**:  
   👉 **[Deploy on Streamlit Community Cloud](https://share.streamlit.io/deploy?repository=vishal-s-sollapure/Voice-Notes-to-Action-Item&branch=main&mainModule=app.py)**
 
-> **Note**: When deploying on Streamlit Cloud, add your Gemini API key in **App Settings ➔ Secrets**:
+> **Note**: When running on Streamlit Cloud, add your Gemini API key in **App Settings ➔ Secrets**:
 > ```toml
 > GEMINI_API_KEY = "your-gemini-api-key-here"
 > ```
@@ -123,7 +126,8 @@ Open your browser at `http://localhost:8501`.
    ```toml
    GEMINI_API_KEY = "your_google_ai_studio_api_key"
    ```
-6. Click **Deploy**. Your app will be live with a public URL like `https://voice-notes-to-action-item.streamlit.app`!
+6. Click **Deploy**. Your app will be live with your custom public URL, e.g.:  
+   👉 **[Voice Notes to Action Items · Streamlit](https://vishal-s-sollapure-voice-notes-to-action-item-app-2kyp2v.streamlit.app/)**
 
 ### Option 2: Docker / Container
 Create a simple `Dockerfile`:
