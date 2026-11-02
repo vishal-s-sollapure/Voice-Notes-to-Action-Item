@@ -58,6 +58,14 @@ Spoken voice notes, voice memos, and meeting recordings often contain critical t
 
 ---
 
+## 📸 Screenshots
+
+| Empty State UI | Processed Action Items UI |
+|:---:|:---:|
+| ![Empty State UI](screenshot-image.1.jpeg) | ![Processed Action Items UI](screenshot-image.2.jpeg) |
+
+---
+
 ## 💻 Local Setup Instructions
 
 ### 1. Clone the Repository
@@ -135,10 +143,12 @@ CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0
 
 ```text
 Voice-Notes-to-Action-Item/
-├── app.py              # Main Streamlit web application
-├── requirements.txt    # Python dependencies
-├── README.md           # Documentation & setup guide
-└── .gitignore          # Git ignore configuration
+├── app.py                     # Main Streamlit web application
+├── requirements.txt           # Python dependencies
+├── README.md                  # Documentation & setup guide
+├── screenshot-image.1.jpeg    # UI screenshot
+├── screenshot-image.2.jpeg    # UI screenshot
+└── .gitignore                 # Git ignore configuration
 ```
 
 ---
