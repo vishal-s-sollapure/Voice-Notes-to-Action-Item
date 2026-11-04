@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import streamlit as st
 from enum import Enum
 from typing import List, Optional
@@ -325,31 +326,55 @@ if audio_file:
                 """
 
                 status.write("Enforcing strict Pydantic JSON schema...")
-                try:
-                    response = client.models.generate_content(
-                        model=model_choice,
-                        contents=[audio_part, prompt],
-                        config=types.GenerateContentConfig(
-                            response_mime_type="application/json",
-                            response_schema=ExtractionResult,
-                            temperature=0.2,
-                        ),
-                    )
-                except Exception as call_err:
-                    err_msg = str(call_err)
-                    if model_choice != "gemini-3.8-flash" and ("no longer available" in err_msg or "404" in err_msg or "NOT_FOUND" in err_msg):
-                        status.write("Selected model deprecated. Auto-switching to `gemini-3.8-flash`...")
-                        response = client.models.generate_content(
-                            model="gemini-3.8-flash",
-                            contents=[audio_part, prompt],
-                            config=types.GenerateContentConfig(
-                                response_mime_type="application/json",
-                                response_schema=ExtractionResult,
-                                temperature=0.2,
-                            ),
-                        )
-                    else:
-                        raise call_err
+
+                # Resilient candidate list: selected model first, followed by alternates
+                candidates = [model_choice]
+                for fallback in ["gemini-3.8-flash", "gemini-3.8-pro", "gemini-2.0-flash"]:
+                    if fallback not in candidates:
+                        candidates.append(fallback)
+
+                response = None
+                last_error = None
+
+                for current_model in candidates:
+                    max_retries = 3
+                    for attempt in range(1, max_retries + 1):
+                        try:
+                            status.write(f"Contacting `{current_model}` (attempt {attempt}/{max_retries})...")
+                            response = client.models.generate_content(
+                                model=current_model,
+                                contents=[audio_part, prompt],
+                                config=types.GenerateContentConfig(
+                                    response_mime_type="application/json",
+                                    response_schema=ExtractionResult,
+                                    temperature=0.2,
+                                ),
+                            )
+                            break  # Success
+                        except Exception as err:
+                            last_error = err
+                            err_str = str(err)
+                            is_transient = any(term in err_str for term in ["503", "UNAVAILABLE", "high demand", "429", "RESOURCE_EXHAUSTED", "overloaded"])
+                            is_not_found = any(term in err_str for term in ["404", "NOT_FOUND", "no longer available"])
+
+                            if is_not_found:
+                                status.write(f"⚠️ `{current_model}` unavailable. Trying next model...")
+                                break  # Move to next candidate model immediately
+
+                            if is_transient and attempt < max_retries:
+                                wait_seconds = attempt * 2
+                                status.write(f"⏳ High server demand on `{current_model}` (503). Retrying in {wait_seconds}s...")
+                                time.sleep(wait_seconds)
+                            else:
+                                if is_transient:
+                                    status.write(f"⚠️ `{current_model}` busy after {max_retries} attempts. Switching to alternative engine...")
+                                break
+
+                    if response is not None:
+                        break
+
+                if response is None:
+                    raise last_error
 
                 status.update(label="Audio Successfully Processed!", state="complete", expanded=False)
 
