@@ -1,11 +1,11 @@
 # 🎙️ Voice Notes to Action Items (GenAI Portfolio Edition)
 
-> An enterprise-grade, recruiter-ready Generative AI application that converts unstructured voice recordings into structured, prioritized action items using **Google Gemini 2.5 Flash / Pro** multimodal audio understanding and strict **Pydantic v2** schema enforcement.
+> An enterprise-grade, recruiter-ready Generative AI application that converts unstructured voice recordings into structured, prioritized action items using **Google Gemini 3.8 Flash / Pro** multimodal audio understanding and strict **Pydantic v2** schema enforcement.
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://vishal-s-sollapure-voice-notes-to-action-item-app-2kyp2v.streamlit.app/)
 ![Python Version](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.40%2B-FF4B4B?logo=streamlit)
-![Google Gemini](https://img.shields.io/badge/Google%20Gemini-2.5%20Flash%20%7C%20Pro-4285F4?logo=google)
+![Google Gemini](https://img.shields.io/badge/Google%20Gemini-3.8%20Flash%20%7C%20Pro-4285F4?logo=google)
 ![Pydantic](https://img.shields.io/badge/Pydantic-v2.0%2B-E92063?logo=pydantic)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
@@ -40,7 +40,7 @@ Spoken voice notes, ad-hoc audio memos, and meeting recordings are full of criti
 ```mermaid
 flowchart TD
     A["🎙️ User Audio Input\n(Microphone / MP3 / WAV / M4A / OGG)"] --> B["Multimodal Ingestion\n(types.Part.from_bytes)"]
-    B --> C["Dual-Engine Selection\n(Gemini 2.5 Flash / Gemini 2.5 Pro)"]
+    B --> C["Dual-Engine Selection\n(Gemini 3.8 Flash / Gemini 3.8 Pro)"]
     C --> D["Google GenAI API\n(client.models.generate_content)"]
     D --> E["Pydantic v2 Strict Schema Enforcement\n(ExtractionResult Schema)"]
     E --> F["Recruiter-Ready Dark UI\n(Earthy Dark Mode / Dynamic Priority Borders)"]
@@ -58,8 +58,8 @@ flowchart TD
    - Live browser-native microphone recording via `st.audio_input`.
    - File upload supporting `.mp3`, `.wav`, `.m4a`, and `.ogg` up to 200MB.
 2. **Dual-Engine Model Selection**:
-   - `gemini-2.5-flash`: Optimized for ultra-fast response times and cost efficiency.
-   - `gemini-2.5-pro`: Deep multimodal reasoning for complex, multi-speaker, or jargon-heavy audio.
+   - `gemini-3.8-flash`: Latest recommended engine, optimized for ultra-fast response times and cost efficiency.
+   - `gemini-3.8-pro`: Deep multimodal reasoning for complex, multi-speaker, or jargon-heavy audio.
 3. **Native Pydantic Structured Outputs**:
    - Word-for-word audio transcript.
    - Exact 2-sentence executive summary.

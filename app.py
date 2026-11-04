@@ -234,10 +234,10 @@ with st.sidebar:
     st.markdown("### 🧠 Model Selection")
     model_choice = st.selectbox(
         "Gemini Engine",
-        options=["gemini-2.5-flash", "gemini-2.5-pro"],
+        options=["gemini-3.8-flash", "gemini-3.8-pro", "gemini-2.5-flash"],
         index=0,
-        format_func=lambda x: "⚡ Gemini 2.5 Flash (Fast & Efficient)" if x == "gemini-2.5-flash" else "🔬 Gemini 2.5 Pro (Deep Reasoning)",
-        help="Select between Flash for high-speed multimodal processing or Pro for complex audio reasoning.",
+        format_func=lambda x: "⚡ Gemini 3.8 Flash (Latest & Recommended)" if x == "gemini-3.8-flash" else ("🔬 Gemini 3.8 Pro (Deep Reasoning)" if x == "gemini-3.8-pro" else "⚡ Gemini 2.5 Flash (Legacy)"),
+        help="Select between Gemini 3.8 Flash for ultra-fast multimodal processing or 3.8 Pro for deep reasoning.",
     )
 
     st.markdown("---")
@@ -245,7 +245,7 @@ with st.sidebar:
     st.caption(
         """
         - **Audio Ingestion**: Native PCM/WAV/MP3 Stream
-        - **Multimodal LLM**: Native Gemini 2.5 Part
+        - **Multimodal LLM**: Native Gemini 3.8 Engine
         - **Schema Validation**: Pydantic v2 Type Contract
         - **Frontend**: Streamlit + Custom Dark Theme
         """
@@ -325,15 +325,31 @@ if audio_file:
                 """
 
                 status.write("Enforcing strict Pydantic JSON schema...")
-                response = client.models.generate_content(
-                    model=model_choice,
-                    contents=[audio_part, prompt],
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        response_schema=ExtractionResult,
-                        temperature=0.2,
-                    ),
-                )
+                try:
+                    response = client.models.generate_content(
+                        model=model_choice,
+                        contents=[audio_part, prompt],
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            response_schema=ExtractionResult,
+                            temperature=0.2,
+                        ),
+                    )
+                except Exception as call_err:
+                    err_msg = str(call_err)
+                    if model_choice != "gemini-3.8-flash" and ("no longer available" in err_msg or "404" in err_msg or "NOT_FOUND" in err_msg):
+                        status.write("Selected model deprecated. Auto-switching to `gemini-3.8-flash`...")
+                        response = client.models.generate_content(
+                            model="gemini-3.8-flash",
+                            contents=[audio_part, prompt],
+                            config=types.GenerateContentConfig(
+                                response_mime_type="application/json",
+                                response_schema=ExtractionResult,
+                                temperature=0.2,
+                            ),
+                        )
+                    else:
+                        raise call_err
 
                 status.update(label="Audio Successfully Processed!", state="complete", expanded=False)
 
