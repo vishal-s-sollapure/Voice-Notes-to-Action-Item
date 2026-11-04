@@ -327,7 +327,9 @@ if audio_file:
 
                 status.write("Enforcing strict Pydantic JSON schema...")
 
-                # Resilient candidate list: selected model first, followed by alternates
+                # ---------------------------------------------------------
+                # Resilient Multi-Model Failover & Exponential Backoff Engine
+                # ---------------------------------------------------------
                 candidates = [model_choice]
                 for fallback in ["gemini-3.8-flash", "gemini-3.8-pro", "gemini-2.0-flash"]:
                     if fallback not in candidates:
@@ -336,11 +338,11 @@ if audio_file:
                 response = None
                 last_error = None
 
-                for current_model in candidates:
+                for model_idx, current_model in enumerate(candidates):
                     max_retries = 3
                     for attempt in range(1, max_retries + 1):
                         try:
-                            status.write(f"Contacting `{current_model}` (attempt {attempt}/{max_retries})...")
+                            status.write(f"📡 Querying `{current_model}` (attempt {attempt}/{max_retries})...")
                             response = client.models.generate_content(
                                 model=current_model,
                                 contents=[audio_part, prompt],
@@ -350,7 +352,7 @@ if audio_file:
                                     temperature=0.2,
                                 ),
                             )
-                            break  # Success
+                            break  # Successful call!
                         except Exception as err:
                             last_error = err
                             err_str = str(err)
@@ -358,16 +360,24 @@ if audio_file:
                             is_not_found = any(term in err_str for term in ["404", "NOT_FOUND", "no longer available"])
 
                             if is_not_found:
-                                status.write(f"⚠️ `{current_model}` unavailable. Trying next model...")
+                                status.write(f"⚠️ Model `{current_model}` not found. Initiating multi-model failover...")
                                 break  # Move to next candidate model immediately
 
                             if is_transient and attempt < max_retries:
-                                wait_seconds = attempt * 2
-                                status.write(f"⏳ High server demand on `{current_model}` (503). Retrying in {wait_seconds}s...")
+                                # Exponential backoff: 2s, 4s, 8s
+                                wait_seconds = 2 ** attempt
+                                status.write(
+                                    f"⏳ **Exponential Backoff**: High demand (503) on `{current_model}`. "
+                                    f"Retrying in {wait_seconds}s (Attempt {attempt}/{max_retries})..."
+                                )
                                 time.sleep(wait_seconds)
                             else:
-                                if is_transient:
-                                    status.write(f"⚠️ `{current_model}` busy after {max_retries} attempts. Switching to alternative engine...")
+                                if is_transient and model_idx < len(candidates) - 1:
+                                    next_model = candidates[model_idx + 1]
+                                    status.write(
+                                        f"🔀 **Multi-Model Failover**: `{current_model}` busy after {max_retries} retries. "
+                                        f"Failing over to `{next_model}`..."
+                                    )
                                 break
 
                     if response is not None:

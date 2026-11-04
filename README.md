@@ -75,6 +75,9 @@ flowchart TD
    - One-click JSON export button (`st.download_button`) for programmatic workflows.
 6. **Robust Error Handling**:
    - Real-time status indicators and contextual warnings for quota, audio encoding, or network timeouts.
+7. **503 Spike Mitigation & High-Availability**:
+   - **Exponential Backoff**: Handles transient `503 UNAVAILABLE` and `429 RATE_LIMIT` spikes with automatic `2^n` backoff retries (2s, 4s, 8s).
+   - **Multi-Model Failover**: Automatically switches to alternate models (`gemini-3.8-flash` ➔ `gemini-3.8-pro` ➔ `gemini-2.0-flash`) if any engine encounters sustained congestion.
 
 ---
 
