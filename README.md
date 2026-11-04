@@ -14,6 +14,9 @@ Turn spoken voice notes and audio recordings into structured, prioritized action
 - **Live Deployed URL**:  
   👉 **[Voice Notes to Action Items · Streamlit](https://vishal-s-sollapure-voice-notes-to-action-item-app-2kyp2v.streamlit.app/)**
 
+> [!TIP]
+> **Streamlit Sleep Mode**: Streamlit Community Cloud automatically puts inactive apps to sleep to save cloud resources. If you see **"Zzzz This app has gone to sleep due to inactivity"**, don't worry! Simply click the blue **"Yes, get this app back up!"** button on that page, and the app will wake up and load within 15–30 seconds.
+
 - **Instant 1-Click Deploy on Streamlit Cloud**:  
   [![Deploy to Streamlit Cloud](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=vishal-s-sollapure/Voice-Notes-to-Action-Item&branch=main&mainModule=app.py)
 
@@ -47,17 +50,6 @@ Spoken voice notes, voice memos, and meeting recordings often contain critical t
   - **Due Date**: Deadlines extracted from speech, or marked as `Not specified`.
 - 🎨 **Visual Task Cards**: Clean 2-column responsive layout for tasks and full transcript view.
 - 🔐 **Flexible Key Handling**: Provide your Gemini API key through the sidebar UI or configure it via `.env` / Streamlit secrets.
-
----
-
-## 🛠️ Tech Stack
-
-| Component | Technology |
-|---|---|
-| **Frontend Framework** | [Streamlit](https://streamlit.io/) |
-| **Multimodal LLM** | [Google Gemini 2.5 Flash](https://ai.google.dev/) via `google-genai` |
-| **Data Validation** | [Pydantic v2](https://docs.pydantic.dev/) |
-| **Language** | Python 3.10+ |
 
 ---
 
