@@ -1,147 +1,167 @@
 import os
+import json
+import tempfile
 import streamlit as st
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
-# Page configuration
+# --- Page Configuration ---
 st.set_page_config(
-    page_title="Voice Notes to Action Items",
+    page_title="Voice Notes to Action Items | GenAI Task Extractor",
     page_icon="🎙️",
-    layout="wide",
+    layout="wide"
 )
-st.title("🎙️ Voice Notes → Action Items")
-st.caption("Transcribe spoken voice notes and automatically extract tasks, priorities, owners, and deadlines using Gemini.")
 
-# Check for API key in environment or secrets
-default_api_key = os.environ.get("GEMINI_API_KEY", "")
-if not default_api_key:
-    try:
-        default_api_key = st.secrets.get("GEMINI_API_KEY", "")
-    except Exception:
-        default_api_key = ""
+# --- Custom Styling (Earthy Organic Palette) ---
+st.markdown("""
+<style>
+    .stApp {
+        background-color: #121110;
+        color: #E6E1DA;
+    }
+    .metric-card {
+        background-color: #1C1A17;
+        border: 1px solid #38332C;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+    .high-priority { border-left: 5px solid #E56B6F; }
+    .medium-priority { border-left: 5px solid #E0A96D; }
+    .low-priority { border-left: 5px solid #84A59D; }
+    .badge {
+        background-color: #2A2621;
+        color: #D4A373;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# Sidebar Settings
+# --- Structured Output Schema ---
+class TaskItem(BaseModel):
+    task: str = Field(description="Actionable summary of the task.")
+    owner: Optional[str] = Field(description="Assigned person or 'Unassigned'.")
+    due_date: Optional[str] = Field(description="Specific date/timeframe mentioned, or 'Not specified'.")
+    priority: str = Field(description="Priority classification: High, Medium, or Low.")
+
+class AudioAnalysisResult(BaseModel):
+    transcript: str = Field(description="Full verbatim speech-to-text transcript.")
+    summary: str = Field(description="Brief 2-sentence executive summary of the audio note.")
+    action_items: List[TaskItem]
+
+# --- Sidebar Controls ---
 with st.sidebar:
-    st.header("⚙️ Settings")
-    api_key = st.text_input(
-        "Gemini API Key",
-        value=default_api_key,
-        type="password",
-        help="Get your key from https://aistudio.google.com/"
-    )
-    
-    model_name = st.selectbox(
-        "Gemini Model",
-        options=["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"],
-        index=0,
-        help="Fast multimodal model with audio understanding and structured JSON support."
-    )
-    
+    st.title("⚙️ Engine Settings")
+    api_key = st.text_input("Gemini API Key", type="password", help="Enter your Gemini API key from Google AI Studio.")
+    selected_model = st.selectbox("Gemini Model", ["gemini-2.5-flash", "gemini-2.5-pro"])
     st.markdown("---")
-    st.markdown("💡 **Need an API Key?**")
-    st.markdown("[Get one free from Google AI Studio](https://aistudio.google.com/)")
+    st.markdown("💡 **Need an API Key?**\nGet a free key from [Google AI Studio](https://aistudio.google.com).")
+
+st.title("🎙️ Voice Notes → Action Items")
+st.caption("AI-powered voice intelligence tool that converts raw audio notes into structured, trackable team tasks.")
 
 if not api_key:
     st.warning("⚠️ Please enter your Google Gemini API Key in the sidebar to proceed.")
     st.stop()
 
-# Initialize Client
-client = genai.Client(api_key=api_key)
+# --- Main Audio Input Controls ---
+st.subheader("1. Record or Upload Audio Note")
+col1, col2 = st.columns([1, 1])
 
-# Structured Output Schema
-class ActionItem(BaseModel):
-    task: str = Field(description="The action item or task to be completed.")
-    priority: str = Field(description="Priority level: High, Medium, or Low.")
-    owner: Optional[str] = Field(description="Person responsible, or 'Unassigned'.")
-    due_date: Optional[str] = Field(description="Deadline mentioned, or 'Not specified'.")
+audio_source = None
+with col1:
+    uploaded_file = st.file_uploader("Upload Audio File", type=["mp3", "wav", "m4a", "ogg", "flac"])
+    if uploaded_file:
+        audio_source = uploaded_file
 
-class ExtractionResult(BaseModel):
-    transcript: str = Field(description="Full word-for-word transcript of the audio.")
-    action_items: List[ActionItem] = Field(description="List of extracted tasks.")
+with col2:
+    recorded_audio = st.audio_input("Record Live Audio")
+    if recorded_audio:
+        audio_source = recorded_audio
 
-# 1. Screen & Audio Input
-st.subheader("1. Provide Audio Input")
-tab1, tab2 = st.tabs(["📁 Upload Audio File", "🎤 Record Audio"])
-audio_file = None
-
-with tab1:
-    uploaded = st.file_uploader(
-        "Upload an audio file",
-        type=["mp3", "wav", "m4a", "ogg"],
-        help="Upload standard audio formats up to 200MB."
-    )
-    if uploaded:
-        audio_file = uploaded
-
-with tab2:
-    st.info("Allow microphone access when your browser prompts. If recording fails, use the Upload tab.")
-    recorded = st.audio_input(
-        "Record a voice note directly",
-        help="Microphone access must be allowed for this site.",
-    )
-    if recorded:
-        audio_file = recorded
-
-# Processing Logic
-if audio_file:
-    st.audio(audio_file)
+if audio_source:
+    st.audio(audio_source)
     
     if st.button("🚀 Process Voice Note", type="primary", use_container_width=True):
-        with st.status("Processing Audio with Gemini...", expanded=True) as status:
+        client = genai.Client(api_key=api_key)
+        
+        with st.status("⚡ Analyzing audio with Gemini...", expanded=True) as status:
             try:
-                status.write(f"Transcribing audio and extracting tasks using `{model_name}`...")
-                prompt = """
-                Listen carefully to this audio file.
-                1. Provide an accurate word-for-word transcript.
-                2. Extract all action items, assignees, dates, and priorities.
-                If information like owner or due date is missing or ambiguous, mark it as 'Unassigned' or 'Not specified'.
-                """
-                
-                audio_part = types.Part.from_bytes(
-                    data=audio_file.getvalue(),
-                    mime_type=audio_file.type or "audio/wav",
-                )
+                # Save buffer to temporary file for upload
+                suffix = f".{audio_source.name.split('.')[-1]}" if hasattr(audio_source, 'name') else ".wav"
+                with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                    tmp.write(audio_source.getbuffer())
+                    tmp_path = tmp.name
 
-                # Gemini API call with structured schema
+                status.write("📤 Uploading media file...")
+                media_file = client.files.upload(file=tmp_path)
+
+                status.write("🧠 Extracting transcript & structured action items...")
+                prompt = """
+                Extract a complete verbatim transcript, a short executive summary, and all structured action items from this audio.
+                Ensure priority classifications (High, Medium, Low) are accurately deduced from urgency context.
+                """
+
                 response = client.models.generate_content(
-                    model=model_name,
-                    contents=[audio_part, prompt],
+                    model=selected_model,
+                    contents=[media_file, prompt],
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
-                        response_schema=ExtractionResult,
+                        response_schema=AudioAnalysisResult,
                     ),
                 )
+
+                # Parse JSON output safely
+                data = json.loads(response.text)
                 
-                status.update(label="Processing Complete!", state="complete", expanded=False)
+                # Cleanup temp file
+                os.remove(tmp_path)
+                status.update(label="✅ Processing Complete!", state="complete", expanded=False)
+
+                # --- Results UI Display ---
+                st.markdown("---")
+                st.subheader("📌 Executive Summary")
+                st.info(data.get("summary", "No summary provided."))
+
+                st.subheader("🎙️ Verbatim Transcript")
+                with st.expander("Click to view full transcript text"):
+                    st.write(data.get("transcript", ""))
+
+                st.subheader("📋 Action Items & Task Cards")
+                action_items = data.get("action_items", [])
                 
-                # Parse JSON output
-                result = ExtractionResult.model_validate_json(response.text)
+                if not action_items:
+                    st.warning("No clear action items detected in this voice note.")
+                else:
+                    card_cols = st.columns(2)
+                    for idx, item in enumerate(action_items):
+                        prio = item.get("priority", "Low").capitalize()
+                        prio_class = f"{prio.lower()}-priority"
+                        
+                        with card_cols[idx % 2]:
+                            st.markdown(f"""
+                            <div class="metric-card {prio_class}">
+                                <h3>{item.get('task')}</h3>
+                                <p><strong>👤 Assigned To:</strong> <span class="badge">{item.get('owner') or 'Unassigned'}</span></p>
+                                <p><strong>📅 Due Date:</strong> {item.get('due_date') or 'Not specified'}</p>
+                                <p><strong>⚡ Priority:</strong> {prio}</p>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                # Export Option
+                st.markdown("---")
+                st.download_button(
+                    label="📥 Download Structured JSON Output",
+                    data=json.dumps(data, indent=2),
+                    file_name="voice_action_items.json",
+                    mime="application/json"
+                )
 
             except Exception as e:
-                status.update(label="An error occurred", state="error", expanded=True)
-                st.error(f"Error processing audio: {str(e)}")
-                st.stop()
-
-        # 2. Display Transcript
-        st.subheader("2. 📝 Transcript")
-        st.info(f'"{result.transcript}"')
-
-        # 3. Display Structured Action Items
-        st.subheader("3. ✅ Action Items")
-        if not result.action_items:
-            st.warning("No actionable tasks identified in this recording.")
-        else:
-            cols = st.columns(2)
-            for idx, item in enumerate(result.action_items):
-                col = cols[idx % 2]
-                with col:
-                    priority_lower = item.priority.lower()
-                    color = "🔴" if priority_lower == "high" else ("🟡" if priority_lower == "medium" else "🟢")
-                    
-                    with st.container(border=True):
-                        st.markdown(f"### {color} {item.task}")
-                        st.markdown(f"**👤 Owner:** `{item.owner or 'Unassigned'}`")
-                        st.markdown(f"**📅 Due Date:** `{item.due_date or 'Not specified'}`")
-                        st.markdown(f"**⚡ Priority:** `{item.priority.capitalize()}`")
+                status.update(label="❌ Processing Error", state="error", expanded=True)
+                st.error(f"Failed to process audio: {str(e)}")
